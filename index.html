@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CLOSR — Sales Gamification</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0e0f11;
+    --bg2: #17191d;
+    --bg3: #1e2126;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.12);
+    --text: #f0f0ef;
+    --muted: #888a8f;
+    --accent: #f0a500;
+    --accent-dim: rgba(240,165,0,0.12);
+    --green: #22c55e;
+    --green-dim: rgba(34,197,94,0.12);
+    --red: #ef4444;
+    --red-dim: rgba(239,68,68,0.1);
+    --blue: #60a5fa;
+    --blue-dim: rgba(96,165,250,0.1);
+    --radius: 14px;
+    --radius-sm: 8px;
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 0;
+  }
+
+  .phone-frame {
+    width: 100%;
+    max-width: 420px;
+    min-height: 100vh;
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* TOP BAR */
+  .topbar {
+    padding: 18px 20px 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--bg);
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    border-bottom: 1px solid var(--border);
+  }
+  .logo { font-family: 'DM Mono', monospace; font-size: 20px; font-weight: 500; color: var(--accent); letter-spacing: -0.5px; }
+  .streak-pill { background: rgba(240,165,0,0.15); color: var(--accent); font-size: 12px; font-weight: 500; padding: 5px 12px; border-radius: 20px; border: 1px solid rgba(240,165,0,0.2); }
+
+  /* NAV */
+  .nav {
+    display: flex;
+    background: var(--bg2);
+    border-top: 1px solid var(--border);
+    position: sticky;
+    bottom: 0;
+    z-index: 50;
+  }
+  .nav-btn {
+    flex: 1;
+    padding: 12px 4px 10px;
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    font-size: 10px;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 500;
+    cursor: pointer;
+    transition: color .15s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+  }
+  .nav-btn .nav-icon { font-size: 18px; }
+  .nav-btn.active { color: var(--accent); }
+
+  /* CONTENT */
+  .content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 16px 20px;
+    scrollbar-width: none;
+  }
+  .content::-webkit-scrollbar { display: none; }
+
+  /* SCREENS */
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  /* HERO CARD */
+  .hero-card {
+    background: linear-gradient(135deg, #1a1608 0%, #1e1a0a 50%, #16130a 100%);
+    border: 1px solid rgba(240,165,0,0.2);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 12px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero-card::before {
+    content: '';
+    position: absolute;
+    top: -40px; left: 50%; transform: translateX(-50%);
+    width: 200px; height: 200px;
+    background: radial-gradient(circle, rgba(240,165,0,0.08) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .pts-big { font-family: 'DM Mono', monospace; font-size: 52px; font-weight: 500; color: var(--accent); line-height: 1; }
+  .pts-sublabel { font-size: 13px; color: var(--muted); margin-top: 4px; }
+  .level-row { display: flex; justify-content: space-between; font-size: 12px; margin: 14px 0 6px; }
+  .level-name { color: var(--accent); font-weight: 500; }
+  .level-next { color: var(--muted); }
+  .bar-track { height: 4px; background: rgba(255,255,255,0.06); border-radius: 2px; overflow: hidden; }
+  .bar-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width .6s cubic-bezier(.4,0,.2,1); }
+  .level-badge { display: inline-flex; align-items: center; gap: 6px; background: var(--accent-dim); color: var(--accent); font-size: 12px; font-weight: 500; padding: 5px 14px; border-radius: 20px; margin-top: 12px; border: 1px solid rgba(240,165,0,0.15); }
+
+  /* MICROCOPY */
+  .microcopy {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 16px;
+  }
+
+  /* SECTION LABEL */
+  .section-label { font-size: 11px; font-weight: 600; color: var(--muted); letter-spacing: .08em; text-transform: uppercase; margin-bottom: 8px; }
+
+  /* ACTION GRID */
+  .action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px; }
+  .action-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 12px;
+    cursor: pointer;
+    transition: all .12s;
+    text-align: left;
+  }
+  .action-card:hover { border-color: var(--border2); background: var(--bg3); transform: translateY(-1px); }
+  .action-card:active { transform: scale(.97); }
+  .action-pts { font-family: 'DM Mono', monospace; font-size: 22px; font-weight: 500; color: var(--accent); }
+  .action-name { font-size: 13px; color: var(--text); margin-top: 3px; line-height: 1.3; }
+  .action-tag { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+  /* SURPRISE BOX */
+  .surprise-box {
+    display: none;
+    background: rgba(240,165,0,0.05);
+    border: 1px solid rgba(240,165,0,0.2);
+    border-radius: var(--radius);
+    padding: 14px;
+    margin-top: 8px;
+    font-size: 13px;
+    color: var(--text);
+    animation: fadeSlide .3s ease;
+  }
+  .surprise-box.show { display: block; }
+  .surprise-box strong { color: var(--accent); display: block; margin-bottom: 4px; }
+
+  @keyframes fadeSlide { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* LEADERBOARD */
+  .lb-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 6px;
+    transition: all .2s;
+  }
+  .lb-row.first { border-color: rgba(240,165,0,0.3); background: rgba(240,165,0,0.04); }
+  .lb-rank { font-family: 'DM Mono', monospace; font-size: 16px; min-width: 26px; text-align: center; }
+  .lb-avatar { width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; flex-shrink: 0; }
+  .lb-info { flex: 1; }
+  .lb-name { font-size: 14px; font-weight: 500; }
+  .lb-sub { font-size: 11px; color: var(--muted); margin-top: 1px; }
+  .lb-pts { font-family: 'DM Mono', monospace; font-size: 15px; color: var(--accent); font-weight: 500; }
+  .fire-tag { font-size: 11px; background: rgba(239,68,68,0.12); color: #f87171; padding: 2px 8px; border-radius: 10px; margin-left: 6px; }
+  .me-tag { font-size: 11px; background: var(--blue-dim); color: var(--blue); padding: 2px 8px; border-radius: 10px; margin-left: 6px; }
+
+  /* CHALLENGES */
+  .challenge-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px;
+    margin-bottom: 8px;
+  }
+  .ch-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+  .ch-title { font-size: 14px; font-weight: 500; line-height: 1.3; }
+  .ch-badge { font-size: 11px; font-weight: 500; padding: 3px 10px; border-radius: 10px; white-space: nowrap; margin-left: 8px; }
+  .ch-badge.pending { background: var(--accent-dim); color: var(--accent); border: 1px solid rgba(240,165,0,0.2); }
+  .ch-badge.done { background: var(--green-dim); color: var(--green); border: 1px solid rgba(34,197,94,0.2); }
+  .ch-badge.pvp { background: var(--red-dim); color: #f87171; border: 1px solid rgba(239,68,68,0.2); }
+  .ch-bar { height: 4px; background: rgba(255,255,255,0.06); border-radius: 2px; overflow: hidden; margin-bottom: 6px; }
+  .ch-fill { height: 100%; border-radius: 2px; }
+  .ch-fill.accent { background: var(--accent); }
+  .ch-fill.green { background: var(--green); }
+  .ch-meta { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); }
+
+  /* REWARDS */
+  .pts-bar { display: flex; justify-content: space-between; align-items: center; background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 14px; margin-bottom: 14px; font-size: 13px; }
+  .pts-bar strong { font-family: 'DM Mono', monospace; color: var(--accent); }
+  .reward-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px; }
+  .reward-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 12px;
+    text-align: center;
+    cursor: pointer;
+    transition: all .12s;
+  }
+  .reward-card:hover { border-color: var(--border2); transform: translateY(-1px); }
+  .reward-card:active { transform: scale(.97); }
+  .reward-card.locked { opacity: .35; cursor: not-allowed; pointer-events: none; }
+  .reward-icon-big { font-size: 30px; margin-bottom: 8px; }
+  .reward-name { font-size: 13px; font-weight: 500; margin-bottom: 4px; }
+  .reward-cost { font-size: 12px; color: var(--muted); }
+  .reward-cost strong { font-family: 'DM Mono', monospace; color: var(--accent); }
+
+  /* PROFILE */
+  .profile-hero {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  .profile-avatar { width: 54px; height: 54px; border-radius: 50%; background: linear-gradient(135deg, #1a2a1a, #0a1a2a); border: 2px solid rgba(240,165,0,0.3); display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 600; color: var(--accent); }
+  .profile-pts { font-family: 'DM Mono', monospace; font-size: 13px; color: var(--accent); margin-top: 3px; }
+
+  /* BADGES */
+  .badge-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 16px; }
+  .badge-item { text-align: center; padding: 12px 6px; background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-sm); }
+  .badge-icon-sm { font-size: 22px; }
+  .badge-label { font-size: 10px; color: var(--muted); margin-top: 4px; line-height: 1.2; }
+  .badge-item.locked-b { opacity: .25; filter: grayscale(1); }
+
+  /* HISTORY */
+  .hist-item { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .hist-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .hist-text { flex: 1; font-size: 13px; color: var(--text); }
+  .hist-time { font-size: 11px; color: var(--muted); }
+  .hist-pts { font-family: 'DM Mono', monospace; font-size: 13px; font-weight: 500; }
+
+  /* TOAST */
+  .toast {
+    position: fixed;
+    bottom: 70px;
+    left: 50%;
+    transform: translateX(-50%) translateY(8px);
+    background: #1a1a1a;
+    border: 1px solid var(--border2);
+    color: var(--text);
+    padding: 10px 20px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 500;
+    opacity: 0;
+    transition: all .25s cubic-bezier(.4,0,.2,1);
+    pointer-events: none;
+    white-space: nowrap;
+    z-index: 200;
+    max-width: 360px;
+    text-align: center;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* DESKTOP FRAME */
+  @media (min-width: 480px) {
+    body { background: #080909; align-items: center; min-height: 100vh; padding: 24px; }
+    .phone-frame { min-height: auto; height: 820px; border-radius: 32px; border: 1px solid var(--border2); overflow: hidden; box-shadow: 0 40px 80px rgba(0,0,0,.6); }
+    .content { height: calc(820px - 58px - 56px); }
+  }
+</style>
+</head>
+<body>
+<div class="phone-frame">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="logo">CLOSR</div>
+    <div class="streak-pill" id="streak-pill">🔥 5 días racha</div>
+  </div>
+
+  <!-- CONTENT -->
+  <div class="content">
+
+    <!-- HOME -->
+    <div class="screen active" id="screen-home">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+        <div style="font-size:18px;font-weight:500;">Hola, Nico 👊</div>
+        <div style="font-size:12px;color:var(--muted)">17 mar · Lunes</div>
+      </div>
+
+      <div class="hero-card">
+        <div class="pts-big" id="pts-display">1.240</div>
+        <div class="pts-sublabel">puntos totales hoy</div>
+        <div class="level-row">
+          <span class="level-name" id="level-name">⚡ Closer</span>
+          <span class="level-next" id="level-next">faltan 260 para Beast</span>
+        </div>
+        <div class="bar-track"><div class="bar-fill" id="level-fill" style="width:65%"></div></div>
+        <div class="level-badge" id="level-badge">⚡ Nivel 3 — Closer</div>
+      </div>
+
+      <div class="microcopy" id="microcopy">💬 "Rafa está a 80 puntos de ti. ¿Lo dejas pasar?"</div>
+
+      <div class="section-label">Registrar acción</div>
+      <div class="action-grid">
+        <div class="action-card" onclick="addPoints(10,'Llamada realizada')">
+          <div class="action-pts">+10</div>
+          <div class="action-name">Llamada realizada</div>
+          <div class="action-tag">pts por acción</div>
+        </div>
+        <div class="action-card" onclick="addPoints(25,'Llamada conectada')">
+          <div class="action-pts">+25</div>
+          <div class="action-name">Llamada conectada</div>
+          <div class="action-tag">pts por acción</div>
+        </div>
+        <div class="action-card" onclick="addPoints(75,'Demo agendada')">
+          <div class="action-pts">+75</div>
+          <div class="action-name">Demo agendada</div>
+          <div class="action-tag">pts por acción</div>
+        </div>
+        <div class="action-card" onclick="addPoints(150,'Demo realizada')">
+          <div class="action-pts">+150</div>
+          <div class="action-name">Demo realizada</div>
+          <div class="action-tag">pts por acción</div>
+        </div>
+        <div class="action-card" onclick="addPoints(400,'🎯 Venta cerrada')">
+          <div class="action-pts" style="color:#22c55e">+400</div>
+          <div class="action-name">Venta cerrada 🎯</div>
+          <div class="action-tag">pts por cierre</div>
+        </div>
+        <div class="action-card" onclick="triggerSurprise()">
+          <div class="action-pts" style="color:#c084fc">+?</div>
+          <div class="action-name">Bonus sorpresa 🎲</div>
+          <div class="action-tag">aleatorio</div>
+        </div>
+      </div>
+      <div class="surprise-box" id="surprise-box"></div>
+    </div>
+
+    <!-- RANKING -->
+    <div class="screen" id="screen-rank">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+        <div style="font-size:18px;font-weight:500;">Leaderboard</div>
+        <div style="font-size:12px;color:var(--muted)">en tiempo real</div>
+      </div>
+      <div id="lb-list"></div>
+      <div style="font-size:12px;color:var(--muted);text-align:center;margin-top:10px;padding-bottom:4px;">Última actualización hace 2 min</div>
+    </div>
+
+    <!-- RETOS -->
+    <div class="screen" id="screen-retos">
+      <div style="font-size:18px;font-weight:500;margin-bottom:14px;">Retos activos</div>
+
+      <div class="section-label">Hoy</div>
+      <div class="challenge-card">
+        <div class="ch-top">
+          <div class="ch-title">Conecta 5 llamadas</div>
+          <div class="ch-badge pending">+150 pts</div>
+        </div>
+        <div class="ch-bar"><div class="ch-fill accent" id="ch1-fill" style="width:60%"></div></div>
+        <div class="ch-meta"><span id="ch1-prog">3 / 5 conectadas</span><span>Diario</span></div>
+      </div>
+
+      <div class="challenge-card">
+        <div class="ch-top">
+          <div class="ch-title">2 demos antes del mediodía</div>
+          <div class="ch-badge done">✓ Completado</div>
+        </div>
+        <div class="ch-bar"><div class="ch-fill green" style="width:100%"></div></div>
+        <div class="ch-meta"><span>2 / 2</span><span>Diario · bonificado</span></div>
+      </div>
+
+      <div class="section-label" style="margin-top:14px">Esta semana</div>
+      <div class="challenge-card">
+        <div class="ch-top">
+          <div class="ch-title">Cierra 3 ventas esta semana</div>
+          <div class="ch-badge pending">+1.000 pts</div>
+        </div>
+        <div class="ch-bar"><div class="ch-fill accent" style="width:33%"></div></div>
+        <div class="ch-meta"><span>1 / 3 ventas</span><span>Semanal</span></div>
+      </div>
+
+      <div class="challenge-card">
+        <div class="ch-top">
+          <div class="ch-title">Equipo: 50 demos esta semana</div>
+          <div class="ch-badge pending">Fiesta de equipo 🎉</div>
+        </div>
+        <div class="ch-bar"><div class="ch-fill accent" style="width:74%"></div></div>
+        <div class="ch-meta"><span>37 / 50 demos</span><span>Colectivo</span></div>
+      </div>
+
+      <div class="section-label" style="margin-top:14px">Duelos PvP</div>
+      <div class="challenge-card">
+        <div class="ch-top">
+          <div class="ch-title">Eric te desafía: ¿quién cierra más hoy?</div>
+          <div class="ch-badge pvp">Robo 200 pts</div>
+        </div>
+        <div class="ch-bar"><div class="ch-fill accent" style="width:50%"></div></div>
+        <div class="ch-meta"><span>Nico 1 — Eric 1</span><span>PvP · vence en 5h</span></div>
+      </div>
+    </div>
+
+    <!-- PREMIOS -->
+    <div class="screen" id="screen-premios">
+      <div style="font-size:18px;font-weight:500;margin-bottom:14px;">Tienda de premios</div>
+      <div class="pts-bar"><span style="color:var(--muted)">Tus puntos</span><strong id="pts-store">1.240</strong></div>
+      <div class="reward-grid" id="reward-grid"></div>
+    </div>
+
+    <!-- PERFIL -->
+    <div class="screen" id="screen-perfil">
+      <div style="font-size:18px;font-weight:500;margin-bottom:14px;">Mi perfil</div>
+
+      <div class="profile-hero">
+        <div class="profile-avatar">N</div>
+        <div>
+          <div style="font-size:17px;font-weight:500;">Nico</div>
+          <div style="font-size:12px;color:var(--muted)">⚡ Closer · Racha 5 días</div>
+          <div class="profile-pts" id="profile-pts">1.240 pts</div>
+        </div>
+      </div>
+
+      <div class="section-label">Logros desbloqueados</div>
+      <div class="badge-grid">
+        <div class="badge-item"><div class="badge-icon-sm">🔥</div><div class="badge-label">Racha 5 días</div></div>
+        <div class="badge-item"><div class="badge-icon-sm">📞</div><div class="badge-label">100 llamadas</div></div>
+        <div class="badge-item"><div class="badge-icon-sm">🎯</div><div class="badge-label">Primer cierre</div></div>
+        <div class="badge-item"><div class="badge-icon-sm">⚡</div><div class="badge-label">Closer</div></div>
+        <div class="badge-item locked-b"><div class="badge-icon-sm">👑</div><div class="badge-label">Top 1 semana</div></div>
+        <div class="badge-item locked-b"><div class="badge-icon-sm">💰</div><div class="badge-label">10 ventas</div></div>
+        <div class="badge-item locked-b"><div class="badge-icon-sm">🐺</div><div class="badge-label">Beast mode</div></div>
+        <div class="badge-item locked-b"><div class="badge-icon-sm">✈️</div><div class="badge-label">Viajero</div></div>
+      </div>
+
+      <div class="section-label">Actividad reciente</div>
+      <div id="history-list"></div>
+    </div>
+
+  </div><!-- /content -->
+
+  <!-- BOTTOM NAV -->
+  <div class="nav">
+    <button class="nav-btn active" onclick="switchTab('home',this)">
+      <span class="nav-icon">🏠</span>Inicio
+    </button>
+    <button class="nav-btn" onclick="switchTab('rank',this)">
+      <span class="nav-icon">🏆</span>Ranking
+    </button>
+    <button class="nav-btn" onclick="switchTab('retos',this)">
+      <span class="nav-icon">⚔️</span>Retos
+    </button>
+    <button class="nav-btn" onclick="switchTab('premios',this)">
+      <span class="nav-icon">🎁</span>Premios
+    </button>
+    <button class="nav-btn" onclick="switchTab('perfil',this)">
+      <span class="nav-icon">👤</span>Perfil
+    </button>
+  </div>
+
+</div><!-- /phone-frame -->
+
+<div class="toast" id="toast"></div>
+
+<script>
+let points = 1240;
+let history = [
+  { action: 'Demo realizada', pts: 150, time: 'hace 12 min' },
+  { action: 'Llamada conectada', pts: 25, time: 'hace 28 min' },
+  { action: 'Demo agendada', pts: 75, time: 'hace 1h' },
+  { action: 'Bonus sorpresa 🎲', pts: 50, time: 'hace 2h' },
+  { action: 'Llamada realizada', pts: 10, time: 'hace 3h' },
+];
+
+const microcopyList = [
+  '💬 "Rafa está a 80 puntos de ti. ¿Lo dejas pasar?"',
+  '🔥 "Nico está on fire — 3 demos en 2 horas"',
+  '⚡ "Marc acaba de agendar su 2ª demo del día"',
+  '🎯 "Álvaro está a 1 venta de subir de nivel"',
+  '👀 "Eric tiene racha de 8 días. ¿Lo superas?"',
+  '🚀 "El equipo está a 13 demos del reto semanal"',
+  '🐺 "Marc está a punto de alcanzar Beast mode"',
+];
+
+const surprises = [
+  { title: '🎲 Bonus sorpresa: ¡Racha perfecta!', msg: 'Llevas 5 acciones seguidas sin pausa. +50 pts extra.', pts: 50 },
+  { title: '🎰 Lotería CLOSR activada', msg: '¡Multiplicador x2 desbloqueado para tu próxima acción!', pts: 75 },
+  { title: '🌟 Estrella de la hora', msg: 'Eres el más activo de la última hora. +60 pts de bonus.', pts: 60 },
+  { title: '💥 Modo Beast activado', msg: 'Bonus de actividad intensa detectado. +80 pts sorpresa.', pts: 80 },
+];
+
+const levels = [
+  { name: 'Rookie 🌱', min: 0, max: 500 },
+  { name: 'Hunter 🎧', min: 500, max: 1000 },
+  { name: 'Closer ⚡', min: 1000, max: 1500 },
+  { name: 'Beast 🐺', min: 1500, max: 2500 },
+  { name: 'Legend 👑', min: 2500, max: 999999 },
+];
+
+const leaderboard = [
+  { name: 'Marc', pts: 1540, lvl: 'Beast 🐺', fire: true, delta: '+340 hoy', avatar: 'M', bg: '#1a2a1a', color: '#4ade80' },
+  { name: 'Nico', pts: 1240, lvl: 'Closer ⚡', fire: false, delta: '+210 hoy', avatar: 'N', bg: '#1a1a2a', color: '#60a5fa', me: true },
+  { name: 'Rafa', pts: 1160, lvl: 'Closer ⚡', fire: false, delta: '+190 hoy', avatar: 'R', bg: '#2a1a1a', color: '#f87171' },
+  { name: 'Eric', pts: 980, lvl: 'Hunter 🎧', fire: false, delta: '+150 hoy', avatar: 'E', bg: '#1e1a2a', color: '#c084fc' },
+  { name: 'Álvaro', pts: 760, lvl: 'Rookie 🌱', fire: false, delta: '+90 hoy', avatar: 'Á', bg: '#1a1a1a', color: '#94a3b8' },
+];
+
+const rewards = [
+  { icon: '🍽️', name: 'Cena en grupo', cost: 500 },
+  { icon: '🌅', name: 'Tarde libre', cost: 800 },
+  { icon: '🏎️', name: 'Karting', cost: 1200 },
+  { icon: '🥂', name: 'Botella en club', cost: 600 },
+  { icon: '🛌', name: 'Día libre', cost: 1500 },
+  { icon: '✈️', name: 'Viaje finde', cost: 3000 },
+];
+
+function getLevel(p) {
+  return levels.find(l => p >= l.min && p < l.max) || levels[levels.length - 1];
+}
+
+function updateUI() {
+  document.getElementById('pts-display').textContent = points.toLocaleString('es-ES');
+  document.getElementById('pts-store').textContent = points.toLocaleString('es-ES');
+  document.getElementById('profile-pts').textContent = points.toLocaleString('es-ES') + ' pts';
+
+  const lv = getLevel(points);
+  const idx = levels.indexOf(lv);
+  const nextLv = levels[idx + 1];
+  const pct = nextLv ? Math.round(((points - lv.min) / (nextLv.min - lv.min)) * 100) : 100;
+
+  document.getElementById('level-fill').style.width = pct + '%';
+  document.getElementById('level-name').textContent = lv.name;
+  document.getElementById('level-badge').textContent = lv.name + ' · Nivel ' + (idx + 1);
+  document.getElementById('level-next').textContent = nextLv
+    ? 'faltan ' + (nextLv.min - points) + ' para ' + nextLv.name.split(' ')[0]
+    : '¡Nivel máximo!';
+
+  const mc = microcopyList[Math.floor(Math.random() * microcopyList.length)];
+  document.getElementById('microcopy').textContent = mc;
+
+  renderHistory();
+  renderLeaderboard();
+  renderRewards();
+}
+
+function addPoints(pts, action) {
+  points += pts;
+  history.unshift({ action, pts, time: 'ahora mismo' });
+  const msgs = {
+    10: ['Apuntado 📝 +10', 'Hecho. Sigue sumando.'],
+    25: ['¡Conectada! 🎧 +25', '¡Conectada! Eso es.'],
+    75: ['Demo agendada 🗓️ +75', '¡En el calendario!'],
+    150: ['¡Demo realizada! ⭐ +150', '¡Bombazo! +150 pts'],
+    400: ['💥 ¡VENTA CERRADA! +400', '🎯 BEAST MODE ACTIVADO'],
+  };
+  const m = msgs[pts];
+  showToast(m ? m[Math.floor(Math.random() * m.length)] : '+' + pts + ' pts');
+  updateUI();
+}
+
+function triggerSurprise() {
+  const s = surprises[Math.floor(Math.random() * surprises.length)];
+  points += s.pts;
+  history.unshift({ action: s.title, pts: s.pts, time: 'ahora mismo' });
+  const box = document.getElementById('surprise-box');
+  box.innerHTML = '<strong>' + s.title + '</strong>' + s.msg + ' <strong style="color:var(--accent)">+' + s.pts + ' pts</strong>';
+  box.classList.add('show');
+  setTimeout(() => box.classList.remove('show'), 4000);
+  showToast('🎲 ¡Bonus sorpresa! +' + s.pts + ' pts');
+  updateUI();
+}
+
+function redeem(name, cost) {
+  if (points < cost) {
+    showToast('Necesitas ' + (cost - points).toLocaleString('es-ES') + ' pts más para ' + name);
+    return;
+  }
+  points -= cost;
+  history.unshift({ action: '🎁 Canjeado: ' + name, pts: -cost, time: 'ahora mismo' });
+  showToast('✅ ¡' + name + ' canjeado! 🎉');
+  updateUI();
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), 2600);
+}
+
+function renderHistory() {
+  document.getElementById('history-list').innerHTML = history.slice(0, 10).map(h => `
+    <div class="hist-item">
+      <div class="hist-dot" style="background:${h.pts > 0 ? 'var(--green)' : 'var(--red)'}"></div>
+      <div class="hist-text">${h.action}</div>
+      <div class="hist-time">${h.time}</div>
+      <div class="hist-pts" style="color:${h.pts > 0 ? 'var(--green)' : 'var(--red)'}">${h.pts > 0 ? '+' : ''}${h.pts}</div>
+    </div>
+  `).join('');
+}
+
+function renderLeaderboard() {
+  leaderboard[1].pts = points;
+  const sorted = [...leaderboard].sort((a, b) => b.pts - a.pts);
+  const medals = ['🥇', '🥈', '🥉', '4º', '5º'];
+  document.getElementById('lb-list').innerHTML = sorted.map((p, i) => `
+    <div class="lb-row ${i === 0 ? 'first' : ''}">
+      <div class="lb-rank">${medals[i]}</div>
+      <div class="lb-avatar" style="background:${p.bg};color:${p.color}">${p.avatar}</div>
+      <div class="lb-info">
+        <div class="lb-name">
+          ${p.name}
+          ${p.me ? '<span class="me-tag">tú</span>' : ''}
+          ${p.fire ? '<span class="fire-tag">🔥 on fire</span>' : ''}
+        </div>
+        <div class="lb-sub">${p.lvl} · ${p.delta}</div>
+      </div>
+      <div class="lb-pts">${p.pts.toLocaleString('es-ES')}</div>
+    </div>
+  `).join('');
+}
+
+function renderRewards() {
+  document.getElementById('reward-grid').innerHTML = rewards.map(r => `
+    <div class="reward-card ${points < r.cost ? 'locked' : ''}" onclick="redeem('${r.name}', ${r.cost})">
+      <div class="reward-icon-big">${r.icon}</div>
+      <div class="reward-name">${r.name}</div>
+      <div class="reward-cost"><strong>${r.cost.toLocaleString('es-ES')}</strong> pts</div>
+    </div>
+  `).join('');
+}
+
+function switchTab(tab, btn) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('screen-' + tab).classList.add('active');
+  if (btn) btn.classList.add('active');
+}
+
+updateUI();
+</script>
+</body>
+</html>
